@@ -16,10 +16,12 @@ async def song(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': '%(title)s.%(ext)s',
-        'quiet': True
-    }
+    "format": "bestaudio/best",
+    "outtmpl": "%(title)s.%(ext)s",
+    "quiet": True,
+    "noplaylist": True,
+    "cookiefile": "cookies.txt"
+}
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(f"ytsearch:{query}", download=True)['entries'][0]
