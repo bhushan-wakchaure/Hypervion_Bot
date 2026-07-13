@@ -1,10 +1,23 @@
 import streamlit as st
 import os
 from threading import Thread
-from dotenv import load_dotenv
 import json
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+
+def get_bot_token():
+    # Streamlit Cloud secrets (preferred)
+    try:
+        return st.secrets["BOT_TOKEN"]
+    except (KeyError, FileNotFoundError):
+        pass
+    # Fallback to env variable (local .env)
+    return os.getenv("BOT_TOKEN")
 
 QUERY_LOG_FILE = "query_log.json"
 
@@ -28,7 +41,10 @@ def run_bot():
     from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
     import yt_dlp
 
-    BOT_TOKEN = os.getenv("BOT_TOKEN")
+    BOT_TOKEN = get_bot_token()
+    if not BOT_TOKEN:
+        print("ERROR: BOT_TOKEN not found. Set it in Streamlit secrets or .env file.")
+        return
 
     async def song(update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = " ".join(context.args)
@@ -65,7 +81,8 @@ def run_bot():
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("song", song))
-    app.run_polling()
+    print("Bot started polling...")
+    app.run_polling(drop_pending_updates=True)
 
 
 if "bot_started" not in st.session_state:
@@ -73,7 +90,11 @@ if "bot_started" not in st.session_state:
     Thread(target=run_bot, daemon=True).start()
 
 st.title("Hyperion Bot")
-st.success("Telegram bot is running!")
+token = get_bot_token()
+if token:
+    st.success("Telegram bot is running!")
+else:
+    st.error("BOT_TOKEN not found! Add it in Settings > Secrets on Streamlit Cloud.")
 st.write("Send `/song <name>` to the bot on Telegram.")
 
 st.subheader("Song Queries")
