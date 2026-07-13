@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-from threading import Thread
+from threading import Thread, Lock
 import json
 
 try:
@@ -8,6 +8,10 @@ try:
     load_dotenv()
 except ImportError:
     pass
+
+# Global flag to ensure only one bot instance runs across all sessions
+_bot_lock = Lock()
+_bot_running = False
 
 
 def get_bot_token():
@@ -62,6 +66,7 @@ def run_bot():
             "quiet": True,
             "noplaylist": True,
             "cookiefile": "cookies.txt",
+            "js_runtimes": "nodejs",
         }
 
         filename = None
@@ -96,9 +101,10 @@ def run_bot():
     loop.run_until_complete(start_bot())
 
 
-if "bot_started" not in st.session_state:
-    st.session_state.bot_started = True
-    Thread(target=run_bot, daemon=True).start()
+with _bot_lock:
+    if not _bot_running:
+        _bot_running = True
+        Thread(target=run_bot, daemon=True).start()
 
 st.title("Hyperion Bot")
 token = get_bot_token()
