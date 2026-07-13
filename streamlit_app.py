@@ -37,6 +37,7 @@ def save_query(query):
 
 
 def run_bot():
+    import asyncio
     from telegram import Update
     from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
     import yt_dlp
@@ -79,10 +80,20 @@ def run_bot():
             if filename and os.path.exists(filename):
                 os.remove(filename)
 
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("song", song))
-    print("Bot started polling...")
-    app.run_polling(drop_pending_updates=True)
+    async def start_bot():
+        app = ApplicationBuilder().token(BOT_TOKEN).build()
+        app.add_handler(CommandHandler("song", song))
+        await app.initialize()
+        await app.start()
+        await app.updater.start_polling(drop_pending_updates=True)
+        print("Bot started polling...")
+        # Keep running until thread is killed
+        while True:
+            await asyncio.sleep(1)
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(start_bot())
 
 
 if "bot_started" not in st.session_state:
