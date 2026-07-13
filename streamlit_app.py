@@ -2,8 +2,25 @@ import streamlit as st
 import os
 from threading import Thread
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
+
+QUERY_LOG_FILE = "query_log.json"
+
+
+def load_queries():
+    if os.path.exists(QUERY_LOG_FILE):
+        with open(QUERY_LOG_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+
+def save_query(query):
+    queries = load_queries()
+    queries.append(query)
+    with open(QUERY_LOG_FILE, "w") as f:
+        json.dump(queries, f)
 
 
 def run_bot():
@@ -18,6 +35,9 @@ def run_bot():
         if not query:
             await update.message.reply_text("Usage: /song <name>")
             return
+
+        save_query(query)
+        print(f"{len(load_queries())}. {query}")
 
         ydl_opts = {
             "format": "bestaudio/best",
@@ -55,3 +75,21 @@ if "bot_started" not in st.session_state:
 st.title("Hyperion Bot")
 st.success("Telegram bot is running!")
 st.write("Send `/song <name>` to the bot on Telegram.")
+
+st.subheader("Song Queries")
+queries = load_queries()
+if queries:
+    for i, q in enumerate(queries, 1):
+        st.write(f"{i}. {q}")
+else:
+    st.info("No queries yet.")
+
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("Refresh"):
+        st.rerun()
+with col2:
+    if st.button("Clear Log"):
+        if os.path.exists(QUERY_LOG_FILE):
+            os.remove(QUERY_LOG_FILE)
+        st.rerun()
