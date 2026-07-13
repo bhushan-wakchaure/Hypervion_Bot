@@ -1,12 +1,20 @@
-import os
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import yt_dlp
 
 from flask import Flask
 from threading import Thread
-
 import requests
+import os
+from dotenv import load_dotenv
+
+# Load variables from .env file if present
+load_dotenv()
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+# =========================
+# FLASK WEB SERVER
+# =========================
 
 app_web = Flask(__name__)
 
@@ -21,12 +29,6 @@ def run_web():
 
 
 Thread(target=run_web).start()
-
-# Load token from environment for safety. See .env.example
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-if not BOT_TOKEN:
-    raise RuntimeError("BOT_TOKEN not set. Set it in the environment or create a .env file from .env.example")
-
 async def song(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = " ".join(context.args)
 
@@ -34,6 +36,11 @@ async def song(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Usage: /song <name>")
         return
 
+    # ydl_opts = {
+    #     'format': 'bestaudio/best',
+    #     'outtmpl': '%(title)s.%(ext)s',
+    #     'quiet': True
+    # }
     ydl_opts = {
     "format": "bestaudio/best",
     "outtmpl": "%(title)s.%(ext)s",
@@ -52,4 +59,4 @@ app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("song", song))
 
-app.run_polling(drop_pending_updates=True)
+app.run_polling()
